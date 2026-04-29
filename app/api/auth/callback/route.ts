@@ -16,8 +16,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/?error=no_verifier", request.url));
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3110";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3110").replace(/\/$/, "");
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
   const redirectUri = `${appUrl}/api/auth/callback`;
 
   try {
