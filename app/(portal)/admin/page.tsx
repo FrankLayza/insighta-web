@@ -6,7 +6,8 @@ import {
   Activity,
   Key,
   Check,
-  X
+  Shield,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -65,9 +66,18 @@ export default async function AdminPage(props: {
   );
 }
 
+/* ─── Users Tab ─────────────────────────────────────────────────── */
+
 async function UsersTab() {
-  // Attempt to fetch users from the backend
-  let users: Array<{ id: string; name: string; email: string; role: string; github_username?: string; created_at?: string }> = [];
+  let users: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    github_id?: string;
+    role: string;
+    active_sessions?: number;
+    created_at: string;
+  }> = [];
   let fetchError = false;
 
   try {
@@ -82,19 +92,17 @@ async function UsersTab() {
     fetchError = true;
   }
 
-  // Fallback to session-derived data if endpoint doesn't exist yet
+  // Fallback to session-derived data
   if (fetchError || users.length === 0) {
     const session = await getSession();
     if (session) {
-      users = [
-        { 
-          id: session.user.id || "1", 
-          name: session.user.name || "Current User", 
-          email: `${(session.user.name || "user").toLowerCase().replace(/\s+/g, ".")}@insighta.labs`,
-          role: session.user.role,
-          created_at: new Date().toISOString()
-        },
-      ];
+      users = [{
+        id: session.user.id || "1",
+        name: session.user.name || "Current User",
+        email: null,
+        role: session.user.role,
+        created_at: new Date().toISOString(),
+      }];
     }
   }
 
@@ -103,31 +111,40 @@ async function UsersTab() {
       <table className="w-full text-left">
         <thead>
           <tr className="bg-surface border-b border-border">
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">User</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Role</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Joined</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted text-right">Status</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">User</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Role</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Active Sessions</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Joined</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted text-right">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-elevated">
           {users.map((user) => (
             <tr key={user.id} className="hover:bg-elevated/30 transition-colors">
               <td className="px-6 py-4">
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-text-primary">{user.name}</span>
-                  <span className="text-xs text-text-muted">{user.email || user.github_username || ""}</span>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-xs font-bold">
+                    {(user.name || "U")[0].toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-text-primary">{user.name || "Unknown"}</span>
+                    <span className="text-[10px] text-text-muted">{user.email || user.github_id || user.id.substring(0, 8)}</span>
+                  </div>
                 </div>
               </td>
               <td className="px-6 py-4">
                 <span className={cn(
-                  "badge-admin",
-                  user.role === 'ANALYST' && "badge-analyst"
+                  user.role === "ADMIN" ? "badge-admin" : "badge-analyst"
                 )}>
+                  <Shield className="inline mr-1" size={10} />
                   {user.role}
                 </span>
               </td>
+              <td className="px-6 py-4">
+                <span className="text-sm text-text-secondary font-mono">{user.active_sessions ?? "—"}</span>
+              </td>
               <td className="px-6 py-4 text-xs text-text-secondary">
-                {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+                {new Date(user.created_at).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 text-right">
                 <span className="badge-active">Active</span>
@@ -140,9 +157,18 @@ async function UsersTab() {
   );
 }
 
+/* ─── Sessions Tab ──────────────────────────────────────────────── */
+
 async function SessionsTab() {
-  // Attempt to fetch active sessions from the backend
-  let sessions: Array<{ id: string; device?: string; ip_address?: string; location?: string; is_current?: boolean; last_active?: string; created_at?: string }> = [];
+  let sessions: Array<{
+    id: string;
+    user_name?: string | null;
+    user_email?: string | null;
+    user_role?: string;
+    is_current?: boolean;
+    created_at?: string;
+    expires_at?: string;
+  }> = [];
   let fetchError = false;
 
   try {
@@ -157,17 +183,23 @@ async function SessionsTab() {
     fetchError = true;
   }
 
-  // Fallback
   if (fetchError || sessions.length === 0) {
-    sessions = [
-      { id: "current", device: "Current Browser Session", ip_address: "127.0.0.1", location: "Local", is_current: true, last_active: new Date().toISOString() },
-    ];
+    sessions = [{
+      id: "current",
+      user_name: "Current User",
+      user_role: "ADMIN",
+      is_current: true,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    }];
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-text-muted">Currently Active Sessions</h3>
+        <h3 className="text-sm font-bold uppercase tracking-widest text-text-muted">
+          {sessions.length} Active Session{sessions.length !== 1 ? "s" : ""}
+        </h3>
       </div>
       <div className="grid gap-4">
         {sessions.map((s) => (
@@ -177,18 +209,32 @@ async function SessionsTab() {
                 <Key size={20} />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-text-primary">{s.device || "Unknown Device"}</span>
-                <span className="text-xs text-text-muted">{s.ip_address || "—"} {s.location ? `• ${s.location}` : ""}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-text-primary">{s.user_name || "Unknown"}</span>
+                  {s.user_role && (
+                    <span className={cn(
+                      "text-[9px]",
+                      s.user_role === "ADMIN" ? "badge-admin" : "badge-analyst"
+                    )}>
+                      {s.user_role}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-text-muted flex items-center gap-1">
+                  <Clock size={9} />
+                  {s.created_at ? `Created ${new Date(s.created_at).toLocaleString()}` : "—"}
+                  {s.expires_at && ` • Expires ${new Date(s.expires_at).toLocaleString()}`}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-4">
               {s.is_current ? (
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                  <Check size={12} /> Current
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1 badge-active">
+                  <Check size={10} /> Current
                 </span>
               ) : (
-                <span className="text-xs text-text-muted">
-                  {s.last_active ? new Date(s.last_active).toLocaleString() : "—"}
+                <span className="text-[10px] text-text-muted font-mono">
+                  {s.id.substring(0, 8)}
                 </span>
               )}
             </div>
@@ -199,13 +245,24 @@ async function SessionsTab() {
   );
 }
 
+/* ─── Audit Log Tab ─────────────────────────────────────────────── */
+
 async function AuditLogTab() {
-  // Attempt to fetch audit logs from the backend
-  let logs: Array<{ id?: string; timestamp?: string; user?: string; action: string; resource?: string; details?: string; ip_address?: string; created_at?: string }> = [];
+  let logs: Array<{
+    id?: string;
+    timestamp?: string;
+    user?: string;
+    user_role?: string;
+    action: string;
+    resource?: string;
+    method?: string;
+    status_code?: number;
+    ip_address?: string;
+  }> = [];
   let fetchError = false;
 
   try {
-    const response = await apiFetch("/api/v1/admin/audit-logs");
+    const response = await apiFetch("/api/v1/admin/audit-logs?limit=50");
     if (response.ok) {
       const result = await response.json();
       logs = result.data || [];
@@ -216,29 +273,27 @@ async function AuditLogTab() {
     fetchError = true;
   }
 
-  // If the backend doesn't have a dedicated audit endpoint, try the general logs
   if (fetchError || logs.length === 0) {
-    try {
-      const response = await apiFetch("/api/v1/admin/logs");
-      if (response.ok) {
-        const result = await response.json();
-        logs = result.data || [];
-      }
-    } catch {
-      // keep fetchError true
-    }
-  }
-
-  // Fallback to at least showing something
-  if (logs.length === 0) {
     return (
       <div className="card p-0! overflow-hidden">
         <div className="flex flex-col items-center justify-center py-16 space-y-3">
           <Activity size={40} className="text-text-muted opacity-30" />
-          <p className="text-sm text-text-muted">No audit logs available. Actions are recorded automatically as users interact with the system.</p>
+          <p className="text-sm text-text-primary font-semibold">No audit logs recorded yet</p>
+          <p className="text-xs text-text-muted max-w-sm text-center">
+            Actions are recorded automatically as users interact with the system. Logs will appear here after authenticated API calls are made.
+          </p>
         </div>
       </div>
     );
+  }
+
+  // Color-code action badges
+  function actionColor(action: string): string {
+    if (action.includes("DELETE") || action.includes("REVOKE")) return "bg-red-500/10 text-red-400 border-red-500/20";
+    if (action.includes("CREATE") || action.includes("LOGIN")) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+    if (action.includes("EXPORT")) return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    if (action.includes("UPDATE")) return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    return "bg-elevated text-text-primary border-border";
   }
 
   return (
@@ -246,25 +301,51 @@ async function AuditLogTab() {
       <table className="w-full text-left">
         <thead>
           <tr className="bg-surface border-b border-border">
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Timestamp</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">User</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Action</th>
-            <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-muted">Details</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Timestamp</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">User</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Action</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Resource</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted">Method</th>
+            <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-text-muted text-right">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-elevated">
           {logs.map((l, i) => (
-            <tr key={l.id || i} className="text-xs">
-              <td className="px-6 py-4 text-text-muted font-mono">
-                {l.timestamp || l.created_at ? new Date(l.timestamp || l.created_at || "").toLocaleString() : "—"}
+            <tr key={l.id || i} className="hover:bg-elevated/30 transition-colors text-xs">
+              <td className="px-6 py-3 text-text-muted font-mono text-[11px]">
+                {l.timestamp ? new Date(l.timestamp).toLocaleString() : "—"}
               </td>
-              <td className="px-6 py-4 text-text-secondary font-semibold">{l.user || "System"}</td>
-              <td className="px-6 py-4">
-                <span className="px-2 py-0.5 rounded bg-elevated border border-border text-[10px] font-bold text-text-primary">
+              <td className="px-6 py-3">
+                <span className="text-text-secondary font-semibold">{l.user || "System"}</span>
+              </td>
+              <td className="px-6 py-3">
+                <span className={cn(
+                  "px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider",
+                  actionColor(l.action)
+                )}>
                   {l.action}
                 </span>
               </td>
-              <td className="px-6 py-4 text-text-muted">{l.resource || l.details || "—"}</td>
+              <td className="px-6 py-3 text-text-muted font-mono text-[11px] max-w-[200px] truncate">
+                {l.resource || "—"}
+              </td>
+              <td className="px-6 py-3 text-text-muted font-mono text-[11px]">
+                {l.method || "—"}
+              </td>
+              <td className="px-6 py-3 text-right">
+                {l.status_code ? (
+                  <span className={cn(
+                    "font-mono text-[11px] font-bold",
+                    l.status_code < 300 ? "text-emerald-400" :
+                    l.status_code < 400 ? "text-amber-400" :
+                    "text-red-400"
+                  )}>
+                    {l.status_code}
+                  </span>
+                ) : (
+                  <span className="text-text-muted">—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

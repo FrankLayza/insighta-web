@@ -64,9 +64,7 @@ export default async function DashboardPage(props: {
         <MetricCard 
           label="Tracked Profiles" 
           value={pagination.total.toLocaleString()} 
-          trend="+12.4%" 
-          trendUp={true} 
-          context="since last month"
+          context="Total across all systems"
         />
         <MetricCard 
           label="Current View" 
@@ -75,10 +73,8 @@ export default async function DashboardPage(props: {
         />
         <MetricCard 
           label="Confidence Avg" 
-          value="88.2%" 
-          trend="+2.1%" 
-          trendUp={true} 
-          context="precision index"
+          value={`${profiles.length > 0 ? (profiles.reduce((acc: number, p: any) => acc + (p.gender_probability + p.country_probability) / 2, 0) / profiles.length * 100).toFixed(1) : '0'}%`} 
+          context="mean precision index"
         />
         <MetricCard 
           label="System Status" 
@@ -164,7 +160,7 @@ function MetricCard({
         <div className="mt-4 h-1 w-full bg-border/50 rounded-full overflow-hidden relative z-10">
           <div 
             className="h-full bg-accent group-hover:bg-accent-hover transition-all duration-1000 ease-out" 
-            style={{ width: trendUp ? '75%' : '45%' }}
+            style={{ width: label.includes("Confidence") ? value : '100%' }}
           />
         </div>
       )}
