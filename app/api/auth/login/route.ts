@@ -24,7 +24,8 @@ export async function GET() {
     const response = await fetch(`${backendUrl}/api/v1/auth/github/url?redirect_uri=${encodeURIComponent(redirectUri)}`);
     
     if (!response.ok) {
-      throw new Error("Failed to fetch auth URL from backend");
+      const errorText = await response.text().catch(() => 'No response body');
+      throw new Error(`Failed to fetch auth URL from backend. Status: ${response.status}. Body: ${errorText}`);
     }
     
     const { data } = await response.json();
@@ -33,8 +34,15 @@ export async function GET() {
     const authUrl = `${data.url}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
 
     return NextResponse.redirect(authUrl);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login initialization error:", error);
-    return NextResponse.json({ error: "Failed to initialize login" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to initialize login",
+      details: error.message || String(error),
+      debug: {
+        backendUrl,
+        redirectUri
+      }
+    }, { status: 500 });
   }
 }
