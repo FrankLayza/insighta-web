@@ -6,18 +6,18 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   
   if (!code) {
-    return NextResponse.redirect(new URL("/login?error=no_code", request.url));
+    return NextResponse.redirect(new URL("/?error=no_code", request.url));
   }
 
   const cookieStore = await cookies();
   const codeVerifier = cookieStore.get("code_verifier")?.value;
 
   if (!codeVerifier) {
-    return NextResponse.redirect(new URL("/login?error=no_verifier", request.url));
+    return NextResponse.redirect(new URL("/?error=no_verifier", request.url));
   }
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001";
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3110";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const redirectUri = `${appUrl}/api/auth/callback`;
 
   try {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
     if (!response.ok || result.status === "error") {
       console.error("Auth callback error:", result);
-      return NextResponse.redirect(new URL(`/login?error=${result.message || "callback_failed"}`, request.url));
+      return NextResponse.redirect(new URL(`/?error=${result.message || "callback_failed"}`, request.url));
     }
 
     const { access_token, refresh_token, user } = result.data;
@@ -57,6 +57,15 @@ export async function GET(request: Request) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
+    // CSRF Token (JS-accessible for inclusion in headers)
+    const csrfToken = Math.random().toString(36).substring(2);
+    cookieStore.set("csrf_token", csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
     // Store user info in a JS-accessible cookie or just HttpOnly
     cookieStore.set("user_info", JSON.stringify(user), {
       httpOnly: false, // Accessible by client for UI
@@ -71,6 +80,6 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   } catch (error) {
     console.error("Callback processing error:", error);
-    return NextResponse.redirect(new URL("/login?error=internal_error", request.url));
+    return NextResponse.redirect(new URL("/?error=internal_error", request.url));
   }
 }

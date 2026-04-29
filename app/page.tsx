@@ -1,46 +1,88 @@
-import Link from "next/link";
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import {HugeiconsIcon} from "@hugeicons/react";
+import { Github } from "@hugeicons/core-free-icons";
+import { Shield, Lock } from "lucide-react";
+
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  const errorMessages: Record<string, string> = {
+    no_code: "Authorization code missing from GitHub.",
+    no_verifier: "PKCE verification failed. Please try again.",
+    callback_failed: "Failed to exchange tokens with the backend.",
+    internal_error: "An unexpected error occurred during login.",
+    session_expired: "Your session has expired. Please sign in again.",
+  };
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+      <div className="w-full max-w-sm space-y-12">
+        <div className="text-center space-y-3">
+          <div className="mx-auto h-12 w-12 rounded-xl bg-accent flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+            I
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+              Insighta Labs+
+            </h1>
+            <p className="text-sm text-text-secondary">
+              Professional Intelligence Platform
+            </p>
+          </div>
+        </div>
+
+        <div className="card space-y-6 p-8!">
+          {error && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-center">
+              <p className="text-xs text-red-400 font-medium leading-relaxed">
+                {errorMessages[error] || "Authentication failed. Please try again."}
+              </p>
+            </div>
+          )}
+
+          <a
+            href="/api/auth/login"
+            className="flex w-full items-center justify-center gap-3 rounded-lg bg-text-primary px-4 py-3 text-sm font-bold text-background transition-all hover:bg-accent active:scale-[0.98] shadow-sm"
+          >
+            <HugeiconsIcon icon={Github} size={20} />
+            Continue with GitHub
+          </a>
+
+          <div className="pt-2 space-y-3">
+            <p className="text-[10px] text-center text-text-muted uppercase tracking-widest font-bold flex items-center justify-center gap-1.5">
+              <Lock size={10} />
+              Secured by GitHub OAuth with PKCE
+            </p>
+            <div className="flex items-center justify-center gap-4 text-[9px] text-text-muted uppercase tracking-widest">
+              <span className="flex items-center gap-1"><Shield size={8} /> RBAC Enforced</span>
+              <span>HttpOnly Cookies</span>
+              <span>CSRF Protected</span>
+            </div>
+          </div>
+        </div>
+
+        <footer className="text-center space-y-4">
+          <p className="text-xs text-text-muted max-w-xs mx-auto leading-relaxed">
+            By signing in, you agree to our Terms of Service and Privacy Policy. Access is restricted to authorized personnel.
+          </p>
+        </footer>
+      </div>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6 text-zinc-50">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="text-center">
-          <h1 className="bg-gradient-to-br from-white to-zinc-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent">
-            Insighta Labs+
-          </h1>
-          <p className="mt-2 text-zinc-400">
-            Secure Profile Intelligence System
-          </p>
-        </div>
-
-        <div className="mt-10">
-          <Link
-            href="/api/auth/login"
-            className="flex w-full items-center justify-center gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-zinc-950 transition-all hover:bg-zinc-200 active:scale-95"
-          >
-            <svg
-              className="h-5 w-5"
-              aria-hidden="true"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fillRule="evenodd"
-                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Sign in with GitHub
-          </Link>
-        </div>
-
-        <p className="mt-6 text-center text-xs text-zinc-500">
-          By signing in, you agree to our Terms of Service and Privacy Policy.
-        </p>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
-      
-      {/* Subtle background glow */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/10 blur-[100px]" />
-    </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3003";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3110";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -21,7 +21,7 @@ export async function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refresh_token")?.value;
 
   if (!accessToken && !refreshToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/?error=session_expired", request.url));
   }
 
   // If access token is missing but refresh token exists, try to refresh
@@ -61,7 +61,7 @@ export async function proxy(request: NextRequest) {
     }
 
     // If refresh fails, redirect to login
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/?error=session_expired", request.url));
   }
 
   return NextResponse.next();
