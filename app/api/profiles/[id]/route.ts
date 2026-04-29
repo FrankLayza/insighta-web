@@ -1,13 +1,14 @@
 import { apiFetch } from "@/lib/api";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // Proxy DELETE /api/v1/profiles/:id → Backend
 export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const response = await apiFetch(`/api/v1/profiles/${params.id}`, {
+    const response = await apiFetch(`/api/v1/profiles/${id}`, {
       method: "DELETE",
     });
 
@@ -32,11 +33,12 @@ export async function DELETE(
 
 // Proxy GET /api/v1/profiles/:id → Backend
 export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const response = await apiFetch(`/api/v1/profiles/${params.id}`);
+    const response = await apiFetch(`/api/v1/profiles/${id}`);
     const result = await response.json();
 
     if (!response.ok) {
