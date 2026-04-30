@@ -4,16 +4,13 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   
   if (!code) {
     return NextResponse.redirect(new URL("/?error=no_code", request.url));
   }
-
-  const cookieStore = await cookies();
-  const codeVerifier = cookieStore.get("code_verifier")?.value;
-
-  if (!codeVerifier) {
-    return NextResponse.redirect(new URL("/?error=no_verifier", request.url));
+  if (!state) {
+    return NextResponse.redirect(new URL("/?error=no_state", request.url));
   }
 
   const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3110").replace(/\/$/, "");
@@ -28,7 +25,7 @@ export async function GET(request: Request) {
       },
       body: JSON.stringify({
         code,
-        code_verifier: codeVerifier,
+        state,
         redirect_uri: redirectUri,
       }),
     });
@@ -41,6 +38,8 @@ export async function GET(request: Request) {
     }
 
     const { access_token, refresh_token, user } = result.data;
+
+    const cookieStore = await cookies();
 
     // Set tokens in HttpOnly cookies
     cookieStore.set("access_token", access_token, {
@@ -73,9 +72,6 @@ export async function GET(request: Request) {
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
     });
-
-    // Clear the code_verifier
-    cookieStore.delete("code_verifier");
 
     return NextResponse.redirect(new URL("/dashboard", request.url));
   } catch (error) {
